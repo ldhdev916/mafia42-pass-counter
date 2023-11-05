@@ -2,7 +2,9 @@ package com.ldhdev.mafia42passcounter
 
 import android.app.Notification
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.os.Build
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -57,7 +60,11 @@ class CounterService : LifecycleService(), SavedStateRegistryOwner {
         val notification = Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
             .build()
 
-        startForeground(1, notification)
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(1, notification)
+        }
 
         val view = ComposeView(this).apply {
             setViewTreeSavedStateRegistryOwner(this@CounterService)
@@ -95,6 +102,8 @@ class CounterService : LifecycleService(), SavedStateRegistryOwner {
 
         var count by remember { mutableStateOf(0) }
 
+        val color = if (count >= 31) Color.Green else MaterialTheme.colorScheme.primary
+
         Row(
             modifier = Modifier
                 .background(
@@ -108,7 +117,7 @@ class CounterService : LifecycleService(), SavedStateRegistryOwner {
             ) {
                 Text(
                     text = "$count",
-                    color = (if (count >= 31) Color.Green else Color.Red).copy(alpha = 0.7f),
+                    color = color,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                 )
