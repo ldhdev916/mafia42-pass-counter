@@ -1,11 +1,13 @@
 package com.ldhdev.mafia42passcounter
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.foundation.background
@@ -49,12 +51,21 @@ class CounterService : LifecycleService(), SavedStateRegistryOwner {
 
     private var view: View? = null
 
+    private var offsetX = 0
+    private var offsetY = 0
+
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+    private var initialX = 0
+    private var initialY = 0
+
     override fun onCreate() {
         super.onCreate()
 
         savedStateRegistryController.performRestore(null)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
         val notification = Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
@@ -84,11 +95,36 @@ class CounterService : LifecycleService(), SavedStateRegistryOwner {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.END
-
-            x = 40
-            y = 160
+            gravity = Gravity.TOP or Gravity.START
         }
+
+        view.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = params.x
+                    initialY = params.y
+
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+
+                    offsetX = (event.rawX - initialTouchX).toInt()
+                    offsetY = (event.rawY - initialTouchY).toInt()
+
+                    params.x = initialX + offsetX
+                    params.y = initialY + offsetY
+
+                    windowManager.updateViewLayout(view, params)
+                    true
+                }
+
+                else -> false
+            }
+        }
+
 
         windowManager.addView(view, params)
 
